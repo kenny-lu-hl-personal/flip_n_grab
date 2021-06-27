@@ -1,0 +1,133 @@
+
+#game states
+game_phase: str 
+    flip #respond to both flipcard and totem grab emits
+    duel #respond to only totem grab emits
+	pause #do not respond to any emit. Used when pausing the game. etc.
+
+totem: object
+    location
+	dimensions
+    rotation *
+	move function *
+
+players: array
+    array of player objects in the game
+
+match_colors: int
+    0    #false, matching in pattern mode
+	>= 1 #true, color mode activated by corresponding player number
+
+active_duels: int
+    0     #no active duels, when active_duels = 0, game_phase is set to flip
+    >= 1  #incremented when player succesfully activates duel, decremented when a duel has ended. 
+	       when active_duels >= 1 game_phase is set to 'duel'
+
+current_player: int
+    whose turn it is to flip a card
+
+middle of table stack
+
+player object:
+              name: str
+			  deck_position: object (x,y positions)
+              cards_discard_pile: array (list of cards) 
+              cards_play_deck: array (list of cards)
+              flip_status: int (0 if not flipping card. non-zero int signifies flip car animation stage). The card to be animated is top of cards_discard_pile
+			  duel: object (None or duel object)
+
+duel object - set of players in duel
+              list of players by order they grabbed totem. Once single player grabs, duel is started, duel ends when list len = set len. 
+			       when duel is started, stop listening to flip card events. when duel is ended, 
+
+#------clientside functions-------
+
+def initialize_game:
+    #set position for each player
+	#set cards for each player
+
+def animate_cards:
+    #animate playdeck
+	for player in players:
+	    if player.playdeck:
+		    draw card_backsideimage
+
+    #animate cards_discard_pile
+	for player in players:
+	    if flip_status == 0 and cards_discard_pile:
+		    draw cards_discard_pile[-1]
+		elif flip_status != 0:
+		    if len(cards_discard_pile) > 2:
+		        draw cards_discard_pile[-2]
+             draw_flip(cards_discard_pile[-1],flip_status)
+
+def listen_to_click_on_totem:
+    if clock on totem:
+	    emit(clicked on totem)
+
+def listen_to_clock_on_card:
+    if current_player != me:
+	    return
+	else:
+	    emite('flip_card')
+#------------ server side functions ------------
+def process_totem_click:
+    if player.duel == None:
+	    take all cards_discard_piles
+	else:
+	    process_duel(player)
+
+def process_duel(player):
+    
+
+def process_flip_card:
+	    
+
+def update_duel_status(player):
+    #reset duel
+	if (player.duel != None):
+	    if len(duel) == 2:
+		    for p in duel:
+			    p.duel = None
+		else:
+		    player.duel.remove(player)
+    
+	#find new duels
+	if flipping_card is not a special card:
+    	for p in all_players:
+    	    if cards_match(p, player):
+    		    if p.duel != None:
+    			    p.duel.add(player)
+    			else:
+    			    p.duel = set(p, player)
+    			player.duel = p.duel
+
+def cards_match(p1, p2):
+    if p1.flipping_card:
+	    p1_card = p1.flipping_card
+	elif p1.cards_discard_pile:
+	    p1_card = p1.cards_discard_pile
+	else:
+	    p1_card = none
+	
+	#same for p2.
+
+	if p1_card != none and p2_card != none and p1_card == p2_card:
+	    return True
+    else:
+	    return False
+
+
+#rules
+first player to get rid of both playdeck and discardpile wins. Game ENDS.
+
+If player wrongly grabs totem, they take all cards that are face up (all cards_discard_piles + middle pile)
+multiple players in a duel - house rule. (lose takes all. implement this first, then implement other choices)
+
+special cards:
+   inward arrow - all players grab totem. First to crab puts cards_discard_pile in the middle and begins new round. next player losing a duel takes middle pile.
+   colored arrow - duels triggered by matching colors. This special rules ends when a duel has taken place, or this card is no longer visible
+   outward facing arrow - all players flip the topmost card simultaneously, all matching players duel, 
+
+
+

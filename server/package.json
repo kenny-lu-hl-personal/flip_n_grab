@@ -1,0 +1,15 @@
+{
+  "name": "forest_speed",
+  "version": "1.0.0",
+  "description": "Multiplayer dexterity card game. Get rid of your cards as fast as possible!",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Kenny Lu",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^4.17.1",
+    "socket.io": "^4.1.2"
+  }
+}

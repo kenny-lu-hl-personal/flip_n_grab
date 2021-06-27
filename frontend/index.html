@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Jungle Speed</title>
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/css/bootstrap.min.css" integrity="sha384-9aIt2nRpC12Uk9gS9baDl411NQApFmC26EwAOH8WgZl5MYYxFfc+NcPb1dKGj7Sk" crossorigin="anonymous">
+
+<style>
+#gameScreen {
+  display: none;
+}
+</style>
+</head>
+<body>
+  <section class="vh-100">
+    <div class="container h-100">
+
+      <div id="initialScreen" class="h-100">
+        <div class="d-flex flex-column align-items-center justify-content-center h-100">
+            <h1>Jungle Speed</h1>
+            <button
+              type="submit"
+              class="btn btn-success"
+              id="newGameButton"
+            >
+              Create New Game
+            </button>
+            <div>OR</div>
+            <div class="form-group">
+              <input type="text" placeholder="Enter Game Code" id="gameCodeInput"/>
+            </div>
+            <button
+              type="submit"
+              class="btn btn-success"
+              id="joinGameButton"
+            >
+              Join Game
+            </button>
+        </div>
+      </div>
+
+      <div id="waitingScreen" class="h-100">
+        <div class="d-flex flex-column align-items-center justify-content-center h-100">
+            <h1>Waiting Room</h1>
+            <div>Your game code is: <span id="gameCodeDisplay"></span></h1></div>
+            <div id="waitingPlayers"></div>
+            <button type="submit" class="btn btn-success" id="startGameButton">
+              Start Game
+            </button>
+        </div>
+      </div>
+
+      <div id="gameScreen" class="h-100">
+        <div class="d-flex flex-column align-items-center justify-content-center h-100">
+          <canvas id="canvas"></canvas>
+        </div>
+      </div>
+
+    </div>
+  </section>
+  
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.1.2/socket.io.js"></script>
+  <script src="./markup_utils.js" type="module"></script>
+  <script src="./index.js" type="module"></script>
+</body>
+</html>
