@@ -1,9 +1,39 @@
+
+/*
+function d_(name) {
+  this.name = name;
+  this.greeting = function() {
+    alert('Hi! I\'m ' + this.name + '.');
+  };
+}
+*/
+
+//DOM objects
+const gameScreen = document.getElementById('gameScreen');
+const waitingScreen = document.getElementById('waitingScreen');
+const initialScreen = document.getElementById('initialScreen');
+const newGameBtn = document.getElementById('newGameButton');
+const joinGameBtn = document.getElementById('joinGameButton');
+const startGameBtn = document.getElementById('startGameButton');
+const gameCodeInput = document.getElementById('gameCodeInput');
+const gameCodeDisplay = document.getElementById('gameCodeDisplay');
+const waitingPlayersDisplay = document.getElementById('waitingPlayersDisplay');
+
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+
+//game logic variables and instances
 const BG_IMG_NAME = 'pattern_pink_dots'
+const imageObjects = new Map();
+const displayGrid = {
+  cellSize: null,
+  playerPositions: [],
+};
+let playerNumber;
+let gameState = null;
 
-import { insertHTML } from './markup_utils.js';
-
+//connect to game server through through socket io
 const socket = io('http://localhost:3000');
-
 socket.on('enterRoom', handleEnterRoom);
 socket.on('loadGame', handleLoadGame);
 socket.on('setPlayerNumber', handleSetPlayerNumber);
@@ -13,28 +43,10 @@ socket.on('gameCode', handleGameCode);
 socket.on('unknownCode', handleUnknownCode);
 socket.on('tooManyPlayers', handleTooManyPlayers);
 
-const gameScreen = document.getElementById('gameScreen');
-const waitingScreen = document.getElementById('waitingScreen');
-const initialScreen = document.getElementById('initialScreen');
-const newGameBtn = document.getElementById('newGameButton');
-const joinGameBtn = document.getElementById('joinGameButton');
-const startGameBtn = document.getElementById('startGameButton');
-const gameCodeInput = document.getElementById('gameCodeInput');
-const gameCodeDisplay = document.getElementById('gameCodeDisplay');
-
+//needs to communicate to socket. pass in socket dpdc
 newGameBtn.addEventListener('click', newGame);
 joinGameBtn.addEventListener('click', joinGame);
 startGameBtn.addEventListener('click', startGame);
-
-const canvas = document.getElementById('canvas');
-const ctx = canvas.getContext('2d');
-const imageObjects = new Map();
-const displayGrid = {
-  cellSize: null,
-  playerPositions: [],
-};
-let playerNumber;
-let gameState = null;
 
 //Dynamically resize and repaint canvas
 $(window).on('resize', function() {
@@ -64,10 +76,8 @@ function startGame() {
 function handleEnterRoom(numConnected, roomName) {
   initialScreen.style.display = "none";
   waitingScreen.style.display = "block";
-
-  let html = numConnected.toString() + ' players connected';
-  insertHTML('#waitingPlayers', html);
-  insertHTML('#gameCodeDisplay', roomName);
+  waitingPlayersDisplay.innerHTML = numConnected.toString() + ' players connected';
+  gameCodeDisplay.innerHTML = roomName;
 }
 
 async function handleLoadGame(state) {
