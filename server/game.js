@@ -1,3 +1,5 @@
+let MAX_CARDFLIP_FRAMES = 20;
+
 module.exports = {
   initGame,
   gameLoop,
@@ -38,12 +40,12 @@ function initGame(numPlayers) {
   //create and shuffle the 'pot'
   for (const color of ['yellow', 'red', 'green', 'blue']) {
     for (let i = 0; i < 18; i++) {
-       state.pot.push(new card(color, i, null));
+       state.pot.push(new Card(color, i, null));
     }
   }
   for (const special_rule of ['inward', 'outward', 'color']) {
     for (let i = 0; i < 4; i++) {
-       state.pot.push(new card(null, null, special_rule));
+       state.pot.push(new Card(null, null, special_rule));
     }
   }
   shuffleCards(state.pot)
@@ -51,7 +53,7 @@ function initGame(numPlayers) {
   //initialize players and distribute cards from the pot
   deckSize = Math.floor(state.pot.length / numPlayers)
   for (let i = 0; i < numPlayers; i++) {
-    state.players.push(new player(state.pot.splice(-deckSize, deckSize)))
+    state.players.push(new Player(state.pot.splice(-deckSize, deckSize)))
   }
   
   return state;
@@ -64,15 +66,43 @@ function initGame(numPlayers) {
 //  };
 //}
 
-function player(playDeck) {
-  this.playDeck = playDeck;   //array of card objects
-  this.discardPile = [];      //array of card objects
-  this.flipStatus = 0;        //0 if not flipping card. non-zero int signifies flip car animation stage). The card to be animated is top of cards_discard_pile            
-  this.duel = null;           //duel object
-  this.deckPosition = null;   //position of players card on canvas. Relative position  
+function Player(playDeck) {
+  this.playDeck = playDeck;   //array of Card objects representing player's face down cards
+  this.discardPile = [];      //array of Card objects representing player's face up cards
+  this.cardFlipFrameCounter = new AnimationFrameCounter(MAX_CARDFLIP_FRAMES); //Used by clients to draw card flip animation on HTML canvas
+  this.duel = null;           //Duel object
+  this.deckPosition = null;   //position of players card on canvas. Relative position
+  
+  this.flipCard = () => {
+    if (this.playDeck.length === 0) {
+      throw new Error('player tried to flip card without a play deck')
+    } else {
+      this.discardPile.push(this.playDeck.pop())
+    }
+  }
 }
 
-function card(color, pattern, special) {
+/**
+ *Counter used by client to draw animation on HTML canvas.
+ *Counter value of 0 means animation has stopped. 
+ *Animation will have 'maxFrame' frames. 
+ *Counter value from 1 to maxFrames signifies which animation frame to draw.
+ */
+function AnimationFrameCounter(maxFrames) {
+  this.maxFrames = maxFrames;
+  this.counter = 0;
+  this.updateCounter = () => {
+    if (this.counter != 0) {
+      this.counter += 1;
+      this.counter %= maxFrames;
+    }
+  };
+  this.startCounter = () => {
+    this.counter = 1;
+  };
+}
+
+function Card(color, pattern, special) {
   this.color = color;
   this.pattern = pattern;
   this.special = special;
@@ -81,62 +111,12 @@ function card(color, pattern, special) {
 function gameLoop(state) {
   if (!state) {
     return;
+  } else {
+    state.players.forEach((player) => {
+      player.cardFlipFrameCounter.updateCounter();
+    });
+    return false;
   }
-
-  const playerOne = state.players[0];
-  const playerTwo = state.players[1];
-
-  playerOne.pos.x += playerOne.vel.x;
-  playerOne.pos.y += playerOne.vel.y;
-
-  playerTwo.pos.x += playerTwo.vel.x;
-  playerTwo.pos.y += playerTwo.vel.y;
-
-  if (playerOne.pos.x < 0 || playerOne.pos.x > GRID_SIZE || playerOne.pos.y < 0 || playerOne.pos.y > GRID_SIZE) {
-    return 2;
-  }
-
-  if (playerTwo.pos.x < 0 || playerTwo.pos.x > GRID_SIZE || playerTwo.pos.y < 0 || playerTwo.pos.y > GRID_SIZE) {
-    return 1;
-  }
-
-  if (state.food.x === playerOne.pos.x && state.food.y === playerOne.pos.y) {
-    playerOne.snake.push({ ...playerOne.pos });
-    playerOne.pos.x += playerOne.vel.x;
-    playerOne.pos.y += playerOne.vel.y;
-    randomFood(state);
-  }
-
-  if (state.food.x === playerTwo.pos.x && state.food.y === playerTwo.pos.y) {
-    playerTwo.snake.push({ ...playerTwo.pos });
-    playerTwo.pos.x += playerTwo.vel.x;
-    playerTwo.pos.y += playerTwo.vel.y;
-    randomFood(state);
-  }
-
-  if (playerOne.vel.x || playerOne.vel.y) {
-    for (let cell of playerOne.snake) {
-      if (cell.x === playerOne.pos.x && cell.y === playerOne.pos.y) {
-        return 2;
-      }
-    }
-
-    playerOne.snake.push({ ...playerOne.pos });
-    playerOne.snake.shift();
-  }
-
-  if (playerTwo.vel.x || playerTwo.vel.y) {
-    for (let cell of playerTwo.snake) {
-      if (cell.x === playerTwo.pos.x && cell.y === playerTwo.pos.y) {
-        return 1;
-      }
-    }
-
-    playerTwo.snake.push({ ...playerTwo.pos });
-    playerTwo.snake.shift();
-  }
-
-  return false;
 }
 
 function shuffleCards(cards) {

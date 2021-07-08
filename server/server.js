@@ -5,7 +5,9 @@ const { initGame, gameLoop} = require('./game');
 const { FRAME_RATE } = require('./constants');
 const { makeid } = require('./utils');
 
+//Map each socket IO room with its game state. Property name is room ID. Property value is game state.
 const state = {};
+//Map each client to the connected room's ID. Property name is a client ID. Property value is room ID.
 const clientRooms = {};
 
 io.on('connection', client => {
@@ -15,6 +17,7 @@ io.on('connection', client => {
   client.on('startGame', handleStartGame);
   client.on('gameLoaded', handleGameLoaded);
   client.on('disconnect', handleDisconnect);
+  client.on('flipCard', handleFlipCard);
 
   function handleDisconnect() {
     console.log('a player has disconnected');
@@ -62,19 +65,24 @@ io.on('connection', client => {
     const roomID = clientRooms[client.id];
     //set of all client ids in the room
     const clientIDs = io.sockets.adapter.rooms.get(roomID);    
-    const numClients = clientIDs ? clientIDs.size : 0;    
-    let playerNumber = 0;
+    const numClients = clientIDs ? clientIDs.size : 0;
 
-    for (const clientID of Array.from(clientIDs) ) {    
-         const client = io.sockets.sockets.get(clientID);
-         client.playerNumber = playerNumber;    
-         client.emit('setPlayerNumber', playerNumber);
-         playerNumber += 1;    
+    if (numClients <= 1) {
+      client.emit('notEnoughPlayers');
+    } else {
+      //assign a player number to each client
+      let playerNumber = 0;
+      for (const clientID of Array.from(clientIDs) ) {    
+           const client = io.sockets.sockets.get(clientID);
+           client.playerNumber = playerNumber;    
+           client.emit('setPlayerNumber', playerNumber);
+           playerNumber += 1;    
+      }  
+
+      state[roomID] = initGame(playerNumber);
+      //Request clients to load game collateral. Clients respond with 'gameLoaded' event when done.s
+      io.sockets.in(roomID).emit('loadGame', state[roomID]);
     }
-
-    state[roomID] = initGame(playerNumber);
-    //Tell clients to load game collateral. Game starts when all clients send back 'gameLoaded' event 
-    io.sockets.in(roomID).emit('loadGame', state[roomID]);
   } 
 
   function handleGameLoaded() {
@@ -82,10 +90,21 @@ io.on('connection', client => {
     gameState = state[roomID];
     gameState.collatLoaded += 1;
     if (gameState.collatLoaded === gameState.players.length) {
-        io.sockets.in(roomID).emit('gameState', gameState);
+      //io.sockets.in(roomID).emit('gameState', gameState);
+      startGameInterval(roomID);
     }
-    //startGameInterval(roomID);
   }
+
+  function handleFlipCard() {
+    const roomID = clientRooms[client.id];
+    gameState = state[roomID];
+    if (client.playerNumber === gameState.playerToFlip) {
+       gameState.players[client.playerNumber].flipCard();
+       console.log(`${client.id} has flipped a card`)
+       console.log(gameState.players[client.playerNumber])
+    }
+    console.log(`{$client.id}'s request to flip a card is ignored`)
+  }  
 
 });
 
@@ -100,7 +119,9 @@ function startGameInterval(roomID) {
       state[roomID] = null;
       clearInterval(intervalId);
     }
-  }, 1000 / FRAME_RATE);
+  //}, 1000 / FRAME_RATE);
+  }, 10000 / FRAME_RATE);
+
 }
 
 function emitGameState(roomID, gameState) {
