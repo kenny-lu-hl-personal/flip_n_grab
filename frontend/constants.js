@@ -1,0 +1,9 @@
+export const IMG_NAME_BG = 'pattern_pink_dots';
+export const IMG_NAME_CARD_BACKSIDE = 'card_backside';
+export const IMG_NAME_TOTEM = 'totem';
+export const CANVAS_MIN_SIZE = 100;
+export const CANVAS_FONT_RATIO_DEFAULT = 0.05;
+export const CANVAS_FONT_FAMILY = 'Gloria Hallelujah, sans-serif'
+export const GRID_COLUMN_AND_ROW_COUNT = 5;
+export const GRID_POS_TOTEM_AND_POT = 12;
+export const GRID_POS_CLIENT_PLAYDECK = 22;

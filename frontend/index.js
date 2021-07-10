@@ -13,7 +13,7 @@ import { handleEnterRoom,
          handleTooManyPlayers,
          handleNotEnoughPlayers } from './server_connection.js';
 
-import { newGame, joinGame, startGame, flipCard} from './user_inputs.js';
+import { newGame, joinGame, startGame, flipCard, clickInGame } from './user_inputs.js';
 
 //Respond to events emitted by the game server.
 socket.on('enterRoom', handleEnterRoom);
@@ -35,4 +35,7 @@ const startGameBtn = document.getElementById('startGameButton');
 newGameBtn.addEventListener('click', newGame);
 joinGameBtn.addEventListener('click', joinGame);
 startGameBtn.addEventListener('click', startGame);
-gameCanvas.canvas.addEventListener('click', flipCard);
+//gameCanvas.canvas.addEventListener('click', flipCard);
+gameCanvas.canvas.addEventListener('click', (event) => {clickInGame(event, gameCanvas);})
+gameCanvas.canvas.addEventListener('mousemove', gameCanvas.setMousePos);
+//gameCanvas.canvas.addEventListener('mousemove', () => {console.log('YOO')} );

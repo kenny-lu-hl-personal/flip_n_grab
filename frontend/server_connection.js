@@ -22,8 +22,8 @@ const gameCodeInput = document.getElementById('gameCodeInput');
 const gameCodeDisplay = document.getElementById('gameCodeDisplay');
 const waitingPlayersDisplay = document.getElementById('waitingPlayersDisplay');
 
-//The client's player number assigned by the server.
-let playerNumber;
+//The client's player number assigned by the game server.
+let clientPlayerNumber;
 let gameState = null;
 
 function handleEnterRoom(numConnected, roomName) {
@@ -37,25 +37,31 @@ async function handleLoadGame(state) {
   await gameCanvas.loadImages()
   socket.emit('gameLoaded');  
   gameState = state;
-
+  gameCanvas.gameDisplayGrid.setPlayerPositions(clientPlayerNumber, gameState.players.length);
+  
+  //Unhide the canvas and draw the game's initial state.
   waitingScreen.style.display = "none";
   gameScreen.style.display = "block";
-  gameCanvas.activeResize(state);
+  gameCanvas.resize();
   requestAnimationFrame(() => gameCanvas.paintGame(gameState));
 
+  //Resize the canvas and redraw game state when browser window is resized.
+  $(window).on('resize', () => {
+    gameCanvas.resize()
+    requestAnimationFrame(() => gameCanvas.paintGame(gameState));
+  });
+
   //document.addEventListener('keydown', keydown); 
-  gameCanvas.setGrid(playerNumber, gameState);
 }
 
 function handleSetPlayerNumber(number) {
-  playerNumber = number;
-  console.log(`Starting game as player ${playerNumber}`);
+  clientPlayerNumber = number;
+  console.log(`Starting game as player ${clientPlayerNumber}`);
 }
 
 function handleGameState(state) {
   gameState = state;
-  //console.log(gameState);
-  requestAnimationFrame(() => gameCanvas.paintGame(gameState));
+  requestAnimationFrame(() => gameCanvas.paintGame(clientPlayerNumber, gameState));
 }
 
 function handleGameOver(data) {
@@ -66,7 +72,7 @@ function handleGameOver(data) {
 
   gameActive = false;
 
-  if (data.winner === playerNumber) {
+  if (data.winner === clientPlayerNumber) {
     alert('You Win!');
   } else {
     alert('You Lose :(');
@@ -92,7 +98,7 @@ function handleNotEnoughPlayers() {
 }
 
 function reset() {
-  playerNumber = null;
+  clientPlayerNumber = null;
   gameState = null;
   gameCodeInput.value = '';
   initialScreen.style.display = "block";
