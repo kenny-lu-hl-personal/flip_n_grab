@@ -18,6 +18,7 @@ io.on('connection', client => {
   client.on('gameLoaded', handleGameLoaded);
   client.on('disconnect', handleDisconnect);
   client.on('flipCard', handleFlipCard);
+  client.on('grabTotem', handleGrabTotem);
 
   function handleDisconnect() {
     console.log('a player has disconnected');
@@ -100,10 +101,16 @@ io.on('connection', client => {
     gameState = state[roomID];
     if (client.playerNumber === gameState.playerToFlip) {
        gameState.players[client.playerNumber].flipCard();
+       gameState.advancePlayerToFlip();
        console.log(`${client.id} has flipped a card`)
-       console.log(gameState.players[client.playerNumber])
     }
     console.log(`{$client.id}'s request to flip a card is ignored`)
+  }  
+
+  function handleGrabTotem() {
+    const roomID = clientRooms[client.id];
+    gameState = state[roomID];
+    gameState.grabTotem(client.playerNumber);
   }  
 
 });
@@ -119,8 +126,7 @@ function startGameInterval(roomID) {
       state[roomID] = null;
       clearInterval(intervalId);
     }
-  //}, 1000 / FRAME_RATE);
-  }, 10000 / FRAME_RATE);
+  }, 1000 / FRAME_RATE);
 
 }
 
