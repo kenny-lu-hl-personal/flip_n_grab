@@ -102,11 +102,14 @@ function GameCanvas(canvas, imageObjects, gameDisplayGrid) {
     if (gameState) {
       //draw pot cards
       this.paintCard(gameState.pot, 'front', GRID_POS_TOTEM_AND_POT);
+      if (gameState.pot.length > 0) {
+        this.paintText('x' + gameState.pot.length.toString(), GRID_POS_TOTEM_AND_POT, 'right', 'bottom', 0.95, 0.95);
+      }
 
       //draw cards of all players
       for (let i = 0; i < gameState.players.length ; i++) {
         this.paintPlayer(gameState.players[i], i);
-      };
+      }
 
       //draw totem in the center of the grid
       let img = this.imageObjects.get(IMG_NAME_TOTEM);

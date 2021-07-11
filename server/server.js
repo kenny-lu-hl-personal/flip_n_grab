@@ -100,7 +100,7 @@ io.on('connection', client => {
     const roomID = clientRooms[client.id];
     gameState = state[roomID];
     if (client.playerNumber === gameState.playerToFlip) {
-      gameState.players[client.playerNumber].flipCard();
+      gameState.flipCard(client.playerNumber);
       gameState.advancePlayerToFlip();
       console.log(`${client.id} has flipped a card`)
     } else {
