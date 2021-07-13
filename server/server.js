@@ -5,6 +5,9 @@ const { initGame, gameLoop} = require('./game');
 const { FRAME_RATE } = require('./constants');
 const { makeid } = require('./utils');
 
+//TODO. remove makeid(5) magic number
+//      change from clientRoom obj to client.room attribute of each client
+
 //Map each socket IO room with its game state. Property name is room ID. Property value is game state.
 const state = {};
 //Map each client to the connected room's ID. Property name is a client ID. Property value is room ID.
@@ -99,13 +102,7 @@ io.on('connection', client => {
   function handleFlipCard() {
     const roomID = clientRooms[client.id];
     gameState = state[roomID];
-    if (client.playerNumber === gameState.playerToFlip) {
-      gameState.flipCard(client.playerNumber);
-      gameState.advancePlayerToFlip();
-      console.log(`${client.id} has flipped a card`)
-    } else {
-      console.log(`${client.id}'s request to flip a card is ignored`)
-    }  
+    gameState.flipCard(client.playerNumber);
   }  
 
   function handleGrabTotem() {

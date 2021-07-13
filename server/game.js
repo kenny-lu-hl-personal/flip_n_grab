@@ -5,7 +5,6 @@ module.exports = {
   gameLoop,
 }
 
-
 /**
  * Returns a game state object to be assigned to a socket io room.
  * @factory
@@ -68,33 +67,14 @@ function Player(playDeck, discardPile, cardFlipFrameCounter, duel = null) {
   };
 }
 
-Player.transferCards = function(givers, takers, players) {
-  let cards = [];
-  givers.forEach((giverNumber) => {
-    cards.push(...players[giverNumber].discardPile);
-    players[giverNumber].discardPile = [];
-  });
-
-  let splitCnt = Math.floor(cards.length / takers.length);
-  takers.forEach((takerNumber) => {
-    let taker = players[takerNumber];
-    taker.playDeck.push(...taker.discardPile.splice(0));
-    taker.playDeck.push(...cards.splice(0, splitCnt));
-    taker.playDeck = Card.shuffle(taker.playDeck);
-  });
-  if (splitCnt) {
-    players[takers[0]].playDeck.push(...Card.shuffle(cards));
-  }
-}
-
 Player.matchCards = function(playerNumber, otherPlayerNumber, players, matchColors) {
   let player = players[playerNumber];
   let otherPlayer = players[otherPlayerNumber];
   if (player.discardPile.length && otherPlayer.discardPile.length) {
     let card = player.discardPile[player.discardPile.length - 1];
     let otherCard = otherPlayer.discardPile[otherPlayer.discardPile.length - 1];
-    if (matchColors && card.color === otherCard.color) {return true;}
-    if (!matchColors && card.pattern === otherCard.pattern) {return true};
+    if (matchColors && card.color != null && card.color === otherCard.color) {return true;}
+    if (!matchColors && card.pattern != null && card.pattern === otherCard.pattern) {return true};
   }
   return false
 }
@@ -128,27 +108,103 @@ function GameState(phase, pot, players, totem = null, matchColors = false, duelC
 }
 
 GameState.prototype.flipCard = function(playerNumber) {
+  if (playerNumber != this.playerToFlip || this.phase != 'flip') { 
+    console.log(`${playerNumber}'s request to flip a card is ignored`);
+    return;
+  } else {
+    console.log(`${playerNumber} has flipped a card in ${this.phase} phase`);
+  }  
+
   let card = this.players[playerNumber].showCard();
-  console.log(card);
   if (card.special != null) { 
     this.matchColors = false;  //when a special card is drawn, revert to matching card by pattern
     if (card.special === 'inward') {
-      this.duelCnt = 1;
-      this.phase = 'duel';
-      let duel = new Duel([...Array(this.players.length).keys()], true);
-      for (i = 0; i < this.players.length; i++) {
-        this.players[i].duel = duel;
-      }
-    } else if (card.special === 'outward') {
-      //call special function for outward
+      this.envokeSpecialInward();
     } else if (card.special === 'color') {
       this.matchColors = true;
+    } else if (card.special === 'outward') {
+      this.envokeSpecialOutward();
     }
+  }
+
+  this.advancePlayerToFlip();
+}
+
+GameState.prototype.envokeSpecialInward = function () {
+  this.duelCnt = 1;
+  this.phase = 'duel';
+  let duel = new Duel([...Array(this.players.length).keys()], true);
+  for (i = 0; i < this.players.length; i++) {
+    this.players[i].duel = duel;
   }
 }
 
+GameState.prototype.envokeSpecialOutward = function() {
+  this.phase = 'pause';
+  this.matchColors = false;
+
+  function flipCardsForAll() { 
+    let cards = [];
+    let flippedSpecialInward = false;
+    let flippedSpecialColor = false;
+    let flippedSpecialOutward = false;
+    let flippedMatching = false;
+
+    this.players.forEach((player) => {
+      if (player.playDeck.length > 0) {
+        card = player.showCard();
+        cards.push(card);
+        if (card.special != null) {
+          this.matchColors = false;
+          switch(card.special) {
+            case 'inward':
+              flippedSpecialInward = true;
+              break;
+            case 'color':
+              flippedSpecialColor = true;
+              break;
+            case 'outward':
+              flippedSpecialOutward = true;
+              break;
+          }
+        }
+      }
+    })
+
+    if (flippedSpecialInward) {
+      this.envokeSpecialInward();
+      return;
+    }
+    if (flippedSpecialColor) {
+      this.matchColors = true;
+    }
+    for (let i = 0; i < this.players.length - 1; i++) {
+      for (let j = i + 1; j < this.players.length; j++) {
+         if (Player.matchCards(i, j, this.players, this.matchColors)) { flippedMatching = true; }
+      }
+    }
+    if (flippedMatching) {
+      this.phase = 'duel';
+      return;
+    }
+    if (flippedSpecialOutward) {
+      this.envokeSpecialOutward();
+      return;
+    }
+    this.phase = 'flip';
+  };
+
+  const boundedflipCardsForAll = flipCardsForAll.bind(this)
+  setTimeout( boundedflipCardsForAll, 3000); 
+}
+
 GameState.prototype.grabTotem = function(playerNumber) {
-  if (this.phase === 'pause') { return;}
+  if (this.phase === 'pause') { 
+    console.log(`${playerNumber}'s request to grab the card is ignored`);
+    return;
+  } else {
+    console.log(`${playerNumber} has grabbed the totem`);
+  } 
 
   otherPlayerNumbers = [];
   for (let i = 0; i < this.players.length; i++) {
@@ -157,24 +213,15 @@ GameState.prototype.grabTotem = function(playerNumber) {
     }
   }
 
-  if (player.discardPile.length === 0 && player.duel === null) {
+  let player = this.players[playerNumber];
+  let involvedDuel = player.duel;
+
+  if (player.discardPile.length === 0 && involvedDuel === null) {
     //Player has no face up cards to match with other players, and is not involved in inward arrow duel.
-    Player.transferCards(otherPlayerNumbers, [playerNumber], this.players);
-  } else if (player.duel != null) {
-    if (player.duel.recordGrab(playerNumber)) {
-      let duel = player.duel;
-      let giversAndTakers = duel.getGiversAndTakers();
-      if (duel.inwardArrow) {
-        //Fastest player in a inwardArrow duel puts his or her discardPile under the totem. 
-        let fastestPlayer = this.players[giversAndTakers[0][0]]
-        this.pot.push(...fastestPlayer.discardPile.splice(0));
-      } else {
-        Player.transferCards(giversAndTakers[0], giversAndTakers[1], this.players);
-      }
-      duel.getPlayerNumbers().forEach((playerNumber) => { this.players[playerNumber].duel = null });
-      this.duelCnt--;
-      if (this.duelCnt === 0) { this.phase = 'flip'; }
-    }
+    this.transferCards(otherPlayerNumbers, [playerNumber]);
+  } else if (involvedDuel != null) {
+    involvedDuel.recordGrab(playerNumber);
+    if (involvedDuel.isComplete()) { this.endDuel(involvedDuel); }
   } else {
     //Find all players with a matching card
     let matchingPlayerNumbers = [playerNumber];
@@ -186,19 +233,55 @@ GameState.prototype.grabTotem = function(playerNumber) {
 
     if (matchingPlayerNumbers.length === 1) {
       //If no players have matching card, this was wrong grab.
-      Player.transferCards(otherPlayerNumbers, [playerNumber], this.players);
+      this.transferCards(otherPlayerNumbers, [playerNumber]);
     } else {
       //If there are matching card(s), initiate a duel
       this.matchColors = false;    //match color mode ends whenever a duel begins
       this.duelCnt++;
       this.phase = 'duel';
-      let duel = new Duel(matchingPlayerNumbers);
+      let newDuel = new Duel(matchingPlayerNumbers);
+      newDuel.recordGrab(playerNumber);
       matchingPlayerNumbers.forEach((playerNumber) => {
-        this.players[playerNumber].duel = duel;
+        this.players[playerNumber].duel = newDuel;
       })
-      duel.recordGrab(playerNumber);
     }
   }
+}
+
+GameState.prototype.endDuel = function(duelToEnd) {
+  let giversAndTakers = duelToEnd.getGiversAndTakers();
+  if (duelToEnd.inwardArrow) {
+    //Fastest player in a inwardArrow duel puts his or her discardPile in the pot.
+    let fastestPlayer = this.players[giversAndTakers[0][0]]
+    this.pot.push(...fastestPlayer.discardPile.splice(0));
+  } else {
+    this.transferCards(giversAndTakers[0], giversAndTakers[1]);
+  }
+  duelToEnd.getPlayerNumbers().forEach((number) => { this.players[number].duel = null });
+  this.duelCnt--;
+  if (this.duelCnt === 0) { this.phase = 'flip'; }
+
+}
+
+GameState.prototype.transferCards = function(givers, takers) {
+  let cards = this.pot.splice(0);
+  givers.forEach((giverNumber) => {
+    cards.push(...this.players[giverNumber].discardPile);
+    this.players[giverNumber].discardPile = [];
+  });
+
+  let splitCnt = Math.floor(cards.length / takers.length);
+  takers.forEach((takerNumber) => {
+    let taker = this.players[takerNumber];
+    taker.playDeck.push(...taker.discardPile.splice(0));
+    taker.playDeck.push(...cards.splice(0, splitCnt));
+    taker.playDeck = Card.shuffle(taker.playDeck);
+  });
+  if (splitCnt) {
+    this.players[takers[0]].playDeck.push(...Card.shuffle(cards));
+  }
+  //Player who takes the most cards starts the next round.
+  this.playerToFlip = takers[0]
 }
 
 GameState.prototype.advancePlayerToFlip = function() {
@@ -285,6 +368,12 @@ Duel.prototype.recordGrab = function(playerNumber) {
     this.playerGrabOrder.set(playerNumber, this.nextGrabOrder);
     this.nextGrabOrder++;
   }
+}
+
+/**
+ * @return {Boolean}  True when all involved players have grabbed totem, False otherwise.
+ */
+Duel.prototype.isComplete = function() {
   return (this.nextGrabOrder > this.playerGrabOrder.size) ? true : false;  
 }
 

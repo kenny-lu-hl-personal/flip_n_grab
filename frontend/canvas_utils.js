@@ -120,31 +120,30 @@ function GameCanvas(canvas, imageObjects, gameDisplayGrid) {
       this.ctx.drawImage(img, canvasXCoord, canvasYCoord, canvasImgSize, canvasImgSize);  
       
       //If the client's mouse hovers over an actionable area, highlight the actionable area.
-      this.paintMouseHoverPosition(clientPlayerNumber, gameState.phase, gameState.playerToFlip);
+      this.paintMouseSelection(clientPlayerNumber, gameState.phase, gameState.playerToFlip);
     }
    
   };
   
-  this.paintMouseHoverPosition = (clientPlayerNumber, gamePhase, playerToFlip) => {
+  this.paintMouseSelection = (clientPlayerNumber, gamePhase, playerToFlip) => {
     let selection = this.gameDisplayGrid.coordToGridPos(this.mousePos);
     this.ctx.save();
     this.ctx.fillStyle = 'green';
     this.ctx.globalAlpha = 50/100; 
 
     console.log(selection);
-    if (selection === GRID_POS_TOTEM_AND_POT) {
+    if (selection === GRID_POS_TOTEM_AND_POT && gamePhase != 'pause') {
       let canvasXCoord = this.gameDisplayGrid.positionCoordinates[GRID_POS_TOTEM_AND_POT].x;
       let canvasYCoord = this.gameDisplayGrid.positionCoordinates[GRID_POS_TOTEM_AND_POT].y;
       this.ctx.fillRect(canvasXCoord, canvasYCoord, this.gameDisplayGrid.cellSize, this.gameDisplayGrid.cellSize);
     };
-    if (selection === GRID_POS_CLIENT_PLAYDECK && clientPlayerNumber === playerToFlip) {
+    if (selection === GRID_POS_CLIENT_PLAYDECK && gamePhase === 'flip' && clientPlayerNumber === playerToFlip) {
       let canvasXCoord = this.gameDisplayGrid.positionCoordinates[GRID_POS_CLIENT_PLAYDECK].x;
       let canvasYCoord = this.gameDisplayGrid.positionCoordinates[GRID_POS_CLIENT_PLAYDECK].y;
       this.ctx.fillRect(canvasXCoord, canvasYCoord, this.gameDisplayGrid.cellSize, this.gameDisplayGrid.cellSize);
     };
     this.ctx.restore();
   }
-  
   
   this.paintPlayer = (player, playerNumber) => {
     //print discardPile
