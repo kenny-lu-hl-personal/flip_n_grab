@@ -54,7 +54,7 @@ function Player(playDeck, discardPile, cardFlipFrameCounter, duel = null) {
   this.playDeck = playDeck;                         
   this.discardPile = discardPile;                   
   this.cardFlipFrameCounter = cardFlipFrameCounter; 
-  this.duel = null;                                 
+  this.duel = null;                             
   
   //TODO: part of complete functionality must be moved to GameState.
   this.showCard = function() {
@@ -242,10 +242,10 @@ GameState.prototype.grabTotem = function(playerNumber) {
       this.duelCnt++;
       this.phase = 'duel';
       let newDuel = new Duel(matchingPlayerNumbers);
-      newDuel.recordGrab(playerNumber);
       matchingPlayerNumbers.forEach((playerNumber) => {
         this.players[playerNumber].duel = newDuel;
       })
+      newDuel.recordGrab(playerNumber);
     }
   }
 }
@@ -259,7 +259,9 @@ GameState.prototype.endDuel = function(duelToEnd) {
   } else {
     this.transferCards(giversAndTakers[0], giversAndTakers[1]);
   }
-  duelToEnd.getPlayerNumbers().forEach((number) => { this.players[number].duel = null });
+  duelToEnd.getPlayerNumbers().forEach((number) => { 
+    this.players[number].duel = null;
+   });
   this.duelCnt--;
   if (this.duelCnt === 0) { this.phase = 'flip'; }
 
@@ -372,8 +374,9 @@ Card.shuffle = function(cards) {
 function Duel(playerNumbers, inwardArrow = false) {
   this.playerGrabOrder = new Map();       //Maps playerNumber to order in which that player grabs the totem.
   this.nextGrabOrder = 1;                 //Order assigned to next player who grabs to totem.
-  this.inwardArrow = inwardArrow;                     //true if this duel is triggered by matching patterns or color
+  this.inwardArrow = inwardArrow;         //true if this duel is triggered by matching patterns or color
                                           //false if this duel is triggered by inward matching arrow
+  this.testOrder = [];
 
   playerNumbers.forEach((playerNumber) => {
     this.playerGrabOrder.set(playerNumber, Infinity);
@@ -385,10 +388,12 @@ function Duel(playerNumbers, inwardArrow = false) {
    * @param  {Int}      playerNumber   player who grabs the Totem
    * @return {Boolean}                 True when all players have grabbed totem, False otherwise.
    */
+
 Duel.prototype.recordGrab = function(playerNumber) {
   if (this.playerGrabOrder.has(playerNumber) && this.playerGrabOrder.get(playerNumber) === Infinity) {
     this.playerGrabOrder.set(playerNumber, this.nextGrabOrder);
     this.nextGrabOrder++;
+    this.testOrder.push(playerNumber);
   }
 }
 

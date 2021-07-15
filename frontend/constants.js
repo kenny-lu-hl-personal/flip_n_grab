@@ -1,6 +1,7 @@
 export const IMG_NAME_BG = 'pattern_pink_dots';
 export const IMG_NAME_CARD_BACKSIDE = 'card_backside';
 export const IMG_NAME_TOTEM = 'totem';
+export const IMG_NAME_HAND = 'hand';
 export const CANVAS_MIN_SIZE = 100;
 export const CANVAS_FONT_RATIO_DEFAULT = 0.05;
 export const CANVAS_FONT_FAMILY = 'Gloria Hallelujah, sans-serif'

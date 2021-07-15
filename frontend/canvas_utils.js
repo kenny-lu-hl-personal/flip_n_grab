@@ -1,6 +1,7 @@
 import { IMG_NAME_BG,
          IMG_NAME_CARD_BACKSIDE,
          IMG_NAME_TOTEM,
+         IMG_NAME_HAND,
          CANVAS_MIN_SIZE,
          CANVAS_FONT_RATIO_DEFAULT,
          CANVAS_FONT_FAMILY,
@@ -107,7 +108,7 @@ GameCanvas.prototype.paintGame = function(clientPlayerNumber, gameState) {
       this.paintText('x' + gameState.pot.length.toString(), GRID_POS_TOTEM_AND_POT, 'right', 'bottom', 0.95, 0.95);
     }
 
-    //draw cards of all players
+    //draw cards and names of all players
     for (let i = 0; i < gameState.players.length ; i++) {
       this.paintPlayer(gameState.players[i], i);
     }
@@ -120,10 +121,36 @@ GameCanvas.prototype.paintGame = function(clientPlayerNumber, gameState) {
     let canvasImgSize = Math.floor(this.gameDisplayGrid.cellSize);
     this.ctx.drawImage(img, canvasXCoord, canvasYCoord, canvasImgSize, canvasImgSize);  
     
+    this.paintGrabTotem(gameState.players);
+
     //If the client's mouse hovers over an actionable area, highlight the actionable area.
     this.paintMouseSelection(clientPlayerNumber, gameState.phase, gameState.playerToFlip);
   }
  
+}
+
+GameCanvas.prototype.paintGrabTotem = function(players) {
+  let handImg = this.imageObjects.get(IMG_NAME_HAND);
+  let scaledImgSize = Math.floor(this.gameDisplayGrid.cellSize * 0.9);
+
+  let duels = new Set();
+  players.forEach((player) => {
+    if (player.duel != null) { duels.add(player.duel); }
+  })
+  duels.forEach((duel) => {
+    duel.testOrder.forEach((playerNumber) => {
+      let player = players[playerNumber];
+      let playerPosition = this.gameDisplayGrid.playerPositions[playerNumber]
+      let centerX = this.gameDisplayGrid.canvasOffsetX + this.gameDisplayGrid.size/2;
+      let centerY = this.gameDisplayGrid.canvasOffsetY + this.gameDisplayGrid.size/2;
+      this.ctx.save();
+      this.ctx.translate(Math.floor(centerX + playerPosition.handOffsetX * this.gameDisplayGrid.cellSize), 
+                         Math.floor(centerY + playerPosition.handOffsetY * this.gameDisplayGrid.cellSize));
+      this.ctx.rotate(playerPosition.handRotation * Math.PI/180);
+      this.ctx.drawImage(handImg, -scaledImgSize/2, 0, scaledImgSize, scaledImgSize);  
+      this.ctx.restore();
+    })
+  })
 }
 
 GameCanvas.prototype.paintMouseSelection = function(clientPlayerNumber, gamePhase, playerToFlip) {
@@ -190,22 +217,22 @@ GameCanvas.prototype.paintFlipCard = function(card, startPosition, endPosition, 
   let startY = this.gameDisplayGrid.positionCoordinates[startPosition].y + this.gameDisplayGrid.cellMargin;
   let endX = this.gameDisplayGrid.positionCoordinates[endPosition].x + this.gameDisplayGrid.cellMargin;
   let endY = this.gameDisplayGrid.positionCoordinates[endPosition].y + this.gameDisplayGrid.cellMargin;
-  let deltaX = (endX - startX) * animationProgress * (1 / scaleX);
+  let deltaX = (endX - startX) * animationProgress * (1/scaleX);
   let deltaY = (endY - startY) * animationProgress;
   let scaledImgSize = this.gameDisplayGrid.cellSizeMargined
 
   this.ctx.save();
-  this.ctx.translate(startX + scaledImgSize / 2, startY);
+  this.ctx.translate(startX + scaledImgSize/2, startY);
   this.ctx.scale(scaleX, 1);
 
   if (scaleX >= 0) {
     //When scaling factor is > 0, frontside of the card is drawn
     let frontImg = this.imageObjects.get(card.imgName);
-    this.ctx.drawImage(frontImg, deltaX - scaledImgSize / 2, deltaY, scaledImgSize, scaledImgSize);
+    this.ctx.drawImage(frontImg, deltaX - scaledImgSize/2, deltaY, scaledImgSize, scaledImgSize);
   } else {
     //When scaling factor is between -1 and 0, backside of the card is drawn
     let backImg = this.imageObjects.get(IMG_NAME_CARD_BACKSIDE);
-    this.ctx.drawImage(backImg, deltaX - scaledImgSize / 2, deltaY, scaledImgSize, scaledImgSize);
+    this.ctx.drawImage(backImg, deltaX - scaledImgSize/2, deltaY, scaledImgSize, scaledImgSize);
   }
 
   this.ctx.restore();
@@ -276,8 +303,8 @@ function GameDisplayGrid(size, canvasOffsetY = 0, canvasOffsetX = 0, positionCoo
   this.setSize = (canvasHeight, canvasWidth) => {
     this.size = Math.min(canvasHeight, canvasWidth);
     this.cellSize = Math.floor(this.size / GRID_COLUMN_AND_ROW_COUNT);
-    this.canvasOffsetY = Math.floor((canvasHeight - this.size) / 2)
-    this.canvasOffsetX = Math.floor((canvasWidth - this.size) / 2)
+    this.canvasOffsetY = Math.floor((canvasHeight - this.size)/2)
+    this.canvasOffsetX = Math.floor((canvasWidth - this.size)/2)
     this.positionCoordinates = [];
     for (let i = 0; i < Math.pow(GRID_COLUMN_AND_ROW_COUNT, 2); i++) {
       let canvasY = this.canvasOffsetY + Math.floor(i / GRID_COLUMN_AND_ROW_COUNT) * this.cellSize;
@@ -353,6 +380,9 @@ function PlayerPosition(playDeckPos) {
       this.nameAlignmentY = 'bottom';
       this.nameOffsetX = 0;
       this.nameOffsetY = 0.95;
+      this.handRotation = 0;
+      this.handOffsetX = 0;
+      this.handOffsetY = -0.2;
       break;
     case 14:
       this.discardPilePos = 13;
@@ -367,6 +397,9 @@ function PlayerPosition(playDeckPos) {
       this.nameAlignmentY = 'middle';
       this.nameOffsetX = 1;
       this.nameOffsetY = 0.55;
+      this.handRotation = 270;
+      this.handOffsetX = -0.2;
+      this.handOffsetY = 0;
       break;
     case 2:
       this.discardPilePos = 7;
@@ -380,7 +413,10 @@ function PlayerPosition(playDeckPos) {
       this.nameAlignmentX = 'right';
       this.nameAlignmentY = 'top';
       this.nameOffsetX = 1;
-      this.nameOffsetY = 0.1;      
+      this.nameOffsetY = 0.1; 
+      this.handRotation = 180;
+      this.handOffsetX = 0;
+      this.handOffsetY = 0.2;     
       break;
     case 10:
       this.discardPilePos = 11;
@@ -395,6 +431,9 @@ function PlayerPosition(playDeckPos) {
       this.nameAlignmentY = 'middle';
       this.nameOffsetX = 0;
       this.nameOffsetY = 0.4;
+      this.handRotation = 90;
+      this.handOffsetX = 0.2;
+      this.handOffsetY = 0;  
       break;    
   }
 
