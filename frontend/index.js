@@ -35,7 +35,5 @@ const startGameBtn = document.getElementById('startGameButton');
 newGameBtn.addEventListener('click', newGame);
 joinGameBtn.addEventListener('click', joinGame);
 startGameBtn.addEventListener('click', startGame);
-//gameCanvas.canvas.addEventListener('click', flipCard);
-gameCanvas.canvas.addEventListener('click', (event) => {clickInGame(event, gameCanvas);})
-gameCanvas.canvas.addEventListener('mousemove', gameCanvas.setMousePos);
-//gameCanvas.canvas.addEventListener('mousemove', () => {console.log('YOO')} );
+gameCanvas.canvas.addEventListener('click', (event) => { clickInGame(event, gameCanvas) })
+gameCanvas.canvas.addEventListener('mousemove', (event) => { gameCanvas.setMousePos.call(gameCanvas, event) });

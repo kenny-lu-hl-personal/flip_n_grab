@@ -115,12 +115,12 @@ io.on('connection', client => {
 
 function startGameInterval(roomID) {
   const intervalId = setInterval(() => {
-    const winner = gameLoop(state[roomID]);
+    const winners = gameLoop(state[roomID]);
     
-    if (!winner) {
+    if (winners.length === 0) {
       emitGameState(roomID, state[roomID])
     } else {
-      emitGameOver(roomID, winner);
+      emitGameOver(roomID, winners);
       state[roomID] = null;
       clearInterval(intervalId);
     }
@@ -133,8 +133,8 @@ function emitGameState(roomID, gameState) {
   io.sockets.in(roomID).emit('gameState', gameState);
 }
 
-function emitGameOver(roomID, winner) {
-  io.sockets.in(roomID).emit('gameOver', JSON.stringify({ winner }));
+function emitGameOver(roomID, winners) {
+  io.sockets.in(roomID).emit('gameOver', {winners});
 }
 
 function emitRoomState(roomID) {

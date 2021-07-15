@@ -64,16 +64,13 @@ function handleGameState(state) {
   requestAnimationFrame(() => gameCanvas.paintGame(clientPlayerNumber, gameState));
 }
 
-function handleGameOver(data) {
-  if (!gameActive) {
-    return;
-  }
-  data = JSON.parse(data);
-
-  gameActive = false;
-
-  if (data.winner === clientPlayerNumber) {
-    alert('You Win!');
+function handleGameOver(endStatus) {
+  let gameWon = false;
+  endStatus.winners.forEach((winnerNumber) => {
+    if (winnerNumber === clientPlayerNumber) { gameWon = true;}
+  })
+  if (gameWon) {
+    alert('You Win!')
   } else {
     alert('You Lose :(');
   }
@@ -90,7 +87,7 @@ function handleUnknownCode() {
 
 function handleTooManyPlayers() {
   reset();
-  alert('There are not enough players to start the game.');
+  alert('There are too many players in this game.');
 }
 
 function handleNotEnoughPlayers() {

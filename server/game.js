@@ -1,4 +1,4 @@
-const { MAX_CARDFLIP_FRAMES } = require('./constants');
+//const { CARDFLIP_FRAMES_PER_SECOND } = require('./constants');
 
 module.exports = {
   initGame,
@@ -25,18 +25,19 @@ function initGame(numPlayers) {
     }
   }
   Card.shuffle(pot)
-  console.log(pot.length)
+  deckSize = Math.floor(pot.length / numPlayers)
 
   //Create Players and distribute Cards from the pot to the Players.
   let players = [];
-  deckSize = Math.floor(pot.length / numPlayers)
+  let cardflipFramesPerSecond = 20;
+  let cardflipAnimationDuration = 0.5;
   for (let i = 0; i < numPlayers; i++) {
-    startingPlayDeck = pot.splice(-deckSize, deckSize)
-    player = new Player(startingPlayDeck, [], new AnimationFrameCounter(MAX_CARDFLIP_FRAMES))
+    let startingPlayDeck = pot.splice(-deckSize, deckSize)
+    let cardFlipFrameCounter = new frameCounter(cardflipAnimationDuration, cardflipFramesPerSecond)
+    player = new Player(startingPlayDeck, [], cardFlipFrameCounter)
     players.push(player)
   }
 
-  console.log(pot.length)
   const state = new GameState('flip', pot, players, null);  
   return state;
 }
@@ -62,6 +63,7 @@ function Player(playDeck, discardPile, cardFlipFrameCounter, duel = null) {
     } else {
       let card = this.playDeck.pop();
       this.discardPile.push(card);
+      this.cardFlipFrameCounter.start();
       return card;
     }
   };
@@ -290,28 +292,48 @@ GameState.prototype.advancePlayerToFlip = function() {
     if (this.players[this.playerToFlip].playDeck.length > 0) {return;}
   }
   this.playerToFlip = -1;
-};
+}
+
+GameState.prototype.getWinners = function() {
+  let winners = [];
+  for (let i = 0; i < this.players.length; i++) {
+    let player = this.players[i];
+    if (player.discardPile.length === 0 && player.playDeck.length === 0) {
+      winners.push(i);
+    }
+  }
+  return winners;
+}
 
 /**
- * Counter used by client to draw animation on HTML canvas.
- * Counter value of 0 means animation has stopped. 
- * Animation will have 'maxFrame' frames. 
- * Counter value from 1 to maxFrames signifies which animation frame to draw.
+ * Represents the current frame and elapsed time of an animation.
+ * Used to create animations on HTML canvas.
  * @constructor 
+ * @param {Int}   duration              Length of the animation in seconds
+ * @param {Int}   framesPerSecond       Number of animation frames per second
  */
-function AnimationFrameCounter(maxFrames) {
-  this.maxFrames = maxFrames;
-  this.counter = 0;
-  this.updateCounter = () => {
-    if (this.counter != 0) {
-      this.counter += 1;
-      this.counter %= maxFrames;
-    }
-  };
-  this.startCounter = () => {
-    this.counter = 1;
-  };
+function frameCounter(duration, framesPerSecond) {
+  this.duration = duration;
+  this.framesPerSecond = framesPerSecond;
+  this.frameCount = 0;
+  this.maxFrameCount = Math.ceil(duration * framesPerSecond);
+  this.active = false;
 }
+
+
+frameCounter.prototype.start = function() {
+  this.frameCount = 0;
+  this.active = true;
+
+  const intervalId = setInterval(() => {
+    this.frameCount += 1;
+    if (this.frameCount === this.maxFrameCount) {
+      this.active = false;
+      clearInterval(intervalId);
+    }
+  }, 1000 / this.framesPerSecond);  
+}
+
 
 /**
  * @constructor
@@ -405,13 +427,17 @@ Duel.prototype.getGiversAndTakers = function() {
   return [givers, takers];
 }
 
-function gameLoop(state) {
-  if (!state) {
-    return;
-  } else {
-    state.players.forEach((player) => {
-      player.cardFlipFrameCounter.updateCounter();
-    });
-    return false;
-  }
+function gameLoop(gameState) {
+  
+  /*
+  state.players.forEach((player) => {
+    player.cardFlipFrameCounter.updateCounter();
+  });
+  */
+
+  let winners = gameState.getWinners();
+  //endgame
+  //clear room and disconnect players
+  return winners;
 }
+
