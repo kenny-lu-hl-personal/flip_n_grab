@@ -1,7 +1,7 @@
 //TODO 
 Display following on canvas:
--animation: countdown for special  
 -static: grab (true false in player object)
+-animation: countdown for special  
 -static: duel result
 
 Functionality:
