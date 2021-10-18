@@ -6,7 +6,7 @@ if (typeof process.env.IS_HEROKU === 'undefined') {
   front_end_origin = 'http://localhost:8080';    //local testing
   backend_port = 3000 
 } else {
-  front_end_origin = 'https://priceless-nightingale-6a1611.netlify.app';
+  front_end_origin = 'https://www.flipngrap.com';
   backend_port = process.env.PORT
 }
 const io = require('socket.io')(backend_port, {
