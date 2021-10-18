@@ -1,2 +1,5 @@
 #dependency directory
 **/node_modules
+
+#notes
+dev_notes/
