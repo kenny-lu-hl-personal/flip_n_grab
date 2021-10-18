@@ -1,8 +1,8 @@
 module.exports = {
-  makeid,
+  generateGameCode,
 }
 
-function makeid(length) {
+function generateGameCode(length) {
    var result           = '';
    var characters       = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
    var charactersLength = characters.length;

@@ -1,8 +1,11 @@
-//const { CARDFLIP_FRAMES_PER_SECOND } = require('./constants');
+const { CARDS_PATTERN_COUNT,
+        ANIMATION_DURATION_FLIP_CARD,
+        ANIMATION_DURATION_MESSAGE,
+        ANIMATION_FRAME_RATE_FLIP_CARD,
+        ANIMATION_FRAME_RATE_MESSAGE, } = require('./constants');
 
 module.exports = {
   initGame,
-  gameLoop,
 }
 
 /**
@@ -15,30 +18,33 @@ function initGame(numPlayers) {
   //Create and shuffle the 'pot'. A pot holds Cards that do not belong to any Player.
   let pot = [];
   for (const color of ['yellow', 'red', 'green', 'blue']) {
-    for (let i = 0; i < 18; i++) {
+    //for (let i = 0; i < CARDS_PATTERN_COUNT; i++) {
+    for (let i = 0; i < 3; i++) {
        pot.push(new Card(color, i, null));
     }
   }
-  for (const special_rule of ['inward', 'outward', 'color']) {
-    for (let i = 0; i < 4; i++) {
-       pot.push(new Card(null, null, special_rule));
-    }
-  }
+  //for (const special_rule of ['inward', 'outward', 'color']) {
+  //  for (let i = 0; i < 4; i++) {
+  //     pot.push(new Card(null, null, special_rule));
+  //  }
+  //}
   Card.shuffle(pot)
   deckSize = Math.floor(pot.length / numPlayers)
 
   //Create Players and distribute Cards from the pot to the Players.
-  let players = [];
-  let cardflipFramesPerSecond = 20;
-  let cardflipAnimationDuration = 0.5;
+  const players = [];
   for (let i = 0; i < numPlayers; i++) {
-    let startingPlayDeck = pot.splice(-deckSize, deckSize)
-    let cardFlipFrameCounter = new frameCounter(cardflipAnimationDuration, cardflipFramesPerSecond)
+    const startingPlayDeck = pot.splice(-deckSize, deckSize)
+    const cardFlipFrameCounter = new FrameCounter(ANIMATION_DURATION_FLIP_CARD, ANIMATION_FRAME_RATE_FLIP_CARD)
     player = new Player(startingPlayDeck, [], cardFlipFrameCounter)
     players.push(player)
   }
+  
+  //The messenger allows game server to send in game messages that are animated by client browsers.
+  const messageFrameCounter = new FrameCounter(ANIMATION_DURATION_MESSAGE, ANIMATION_FRAME_RATE_MESSAGE)
+  const messenger = new Messenger(messageFrameCounter);
 
-  const state = new GameState('flip', pot, players, null);  
+  const state = new GameState(pot, players, messenger);  
   return state;
 }
 
@@ -46,7 +52,7 @@ function initGame(numPlayers) {
  * @constructor
  * @param {Array}                playDeck              //Array of Card objects representing player's face down cards.
  * @param {Array}                discardPile           //Array of Card objects representing player's face up cards.
- * @param {CardFlipFrameCounter} cardFlipFrameCounter  //Used by clients to draw card flip animation on HTML canvas.
+ * @param {CardFlipFrameCounter} cardFlipFrameCounter  //Determines which animation frame to draw for the flip card animation on HTML canvas.
  * @param {Duel}                 duel                  //Duel object player is involved in. Default is null at player instantiation,
  *                                                     //since there are no matching face up cards when the game starts.
  */
@@ -55,18 +61,22 @@ function Player(playDeck, discardPile, cardFlipFrameCounter, duel = null) {
   this.discardPile = discardPile;                   
   this.cardFlipFrameCounter = cardFlipFrameCounter; 
   this.duel = null;                             
+}
   
-  //TODO: part of complete functionality must be moved to GameState.
-  this.showCard = function() {
-    if (this.playDeck.length === 0) {
-      throw new Error('player tried to flip card without a play deck')
-    } else {
-      let card = this.playDeck.pop();
-      this.discardPile.push(card);
-      this.cardFlipFrameCounter.start();
-      return card;
-    }
-  };
+Player.prototype.showCard = function() {
+  if (this.playDeck.length === 0) {
+    throw new Error('player tried to flip card without a play deck')
+  } else {
+    let card = this.playDeck.pop();
+    this.discardPile.push(card);
+    this.cardFlipFrameCounter.start();
+    return card;
+  }
+}
+
+Player.prototype.moveDiscardPileToPlayDeck = function() {
+  this.playDeck.push(...this.discardPile.splice(0));
+  Card.shuffle(this.playDeck);
 }
 
 Player.matchCards = function(playerNumber, otherPlayerNumber, players, matchColors) {
@@ -82,31 +92,59 @@ Player.matchCards = function(playerNumber, otherPlayerNumber, players, matchColo
 }
 
 /**
+ * @constructor
+ * @param {FrameCounter}  frameCounter  //Determines which animation frame to draw for the message animation on HTML canvas.
+ */
+function Messenger(frameCounter) {         
+  this.frameCounter = frameCounter; 
+  this.message = '';                    
+}
+
+/**
+ * Signals client to show the given in game message.
+ * @param  {String}   text   In game message to be displayed by clients
+ */
+Messenger.prototype.send = function (message) {
+  this.message = message;
+  this.frameCounter.start();
+}
+
+/**
  * @constructor 
+ * @param {Array}   pot           Array of Card objects. Represents cards that do not belong to any player.
+ * @param {Array}   players       Array of Player objects. Each client is assigned to a player object in the array.
+ * @param {Messenger} messenger   Keeps track of animation status of in game messages.
  * @param {String}  phase         Phase of the board game.
  *                                 'flip' - Server responds to flipCard and grabTotem emits.
  *                                 'duel' - Server responds to grabTotem emits.
  *                                 'pause'- Server does not respond to grabTotem & flipCard emits. 
- * @param {Array}   pot           Array of Card objects. Represents cards that do not belong to any player.
- * @param {Array}   players       Array of Player objects. Each client is assigned to a player object in the array.
- * @param {Totem}   totem    
  * @param {Boolean} matchColors   Players must activate duels based on matchColors  
  *                                 0 - match cards by pattern
  *                                 True - match cards by color
- * @param {String}  duelCnt       The number of duels among all players. When duelCnt >= 1, gamePhase is set to duel.
- * @param {Int}     playerToFlip  Index into this.players array. Represends player whos turn it is to flip a card.
- * @param {Int}     collatLoaded  Counts the number of clients in the room that have emitted 'gameLoaded' event.
- *                                Game starts when all clients have emitted the event. 
+ * @param {Int}     playerToFlip  Index into players array. Represends player whos turn it is to flip a card.
  */
-function GameState(phase, pot, players, totem = null, matchColors = false, duelCnt = 0, playerToFlip = 0, collatLoaded = 0) {
-  this.phase = phase;
+function GameState(pot, players, messenger, phase = 'flip', matchColors = false, playerToFlip = 0) {
   this.pot = pot;
   this.players = players;
-  this.totem = totem;
+  this.messenger = messenger;
+  this.phase = phase;
   this.matchColors = matchColors;
-  this.duelCnt = duelCnt;
-  this.playerToFlip = playerToFlip;
-  this.collatLoaded = collatLoaded;
+  this.playerToFlip = 0;
+  this.duelCnt = 0;              //The number of duels among all players. When duelCnt >= 1, gamePhase is set to duel.
+  this.winningPlayers = [];      //Keeps track of players with no cards left. When winningPlayers.length > 0, the game ends.
+}
+
+GameState.prototype.pauseForMessage = function(message) {
+  const prevPhase = this.phase;
+  this.phase = 'pause';
+  this.messenger.send(message);
+
+  function resetPhase(phase) {
+    this.phase = phase;
+    console.log('hello')
+  }
+  //const resetGamePhase = resetPhase.bind(this);
+  setTimeout(resetPhase.bind(this, prevPhase), ANIMATION_DURATION_MESSAGE * 1000); 
 }
 
 GameState.prototype.flipCard = function(playerNumber) {
@@ -130,6 +168,7 @@ GameState.prototype.flipCard = function(playerNumber) {
   }
 
   this.advancePlayerToFlip();
+  this.updateWinningPlayers();
 }
 
 GameState.prototype.envokeSpecialInward = function () {
@@ -202,17 +241,12 @@ GameState.prototype.envokeSpecialOutward = function() {
 
 GameState.prototype.grabTotem = function(playerNumber) {
   if (this.phase === 'pause') { 
-    console.log(`${playerNumber}'s request to grab the card is ignored`);
     return;
-  } else {
-    console.log(`${playerNumber} has grabbed the totem`);
-  } 
+  }
 
   otherPlayerNumbers = [];
   for (let i = 0; i < this.players.length; i++) {
-    if (i != playerNumber) {
-      otherPlayerNumbers.push(i);
-    }
+    if (i != playerNumber) { otherPlayerNumbers.push(i); }
   }
 
   let player = this.players[playerNumber];
@@ -221,6 +255,7 @@ GameState.prototype.grabTotem = function(playerNumber) {
   if (player.discardPile.length === 0 && involvedDuel === null) {
     //Player has no face up cards to match with other players, and is not involved in inward arrow duel.
     this.transferCards(otherPlayerNumbers, [playerNumber]);
+    this.pauseForMessage('Player ' + (playerNumber + 1).toString() + ' made a false grab.')
   } else if (involvedDuel != null) {
     involvedDuel.recordGrab(playerNumber);
     if (involvedDuel.isComplete()) { this.endDuel(involvedDuel); }
@@ -236,9 +271,10 @@ GameState.prototype.grabTotem = function(playerNumber) {
     if (matchingPlayerNumbers.length === 1) {
       //If no players have matching card, this was wrong grab.
       this.transferCards(otherPlayerNumbers, [playerNumber]);
+      this.pauseForMessage('Player ' + (playerNumber + 1).toString() + ' made a false grab.')
     } else {
       //If there are matching card(s), initiate a duel
-      this.matchColors = false;    //match color mode ends whenever a duel begins
+      this.matchColors = false;          //match color mode ends whenever a duel begins
       this.duelCnt++;
       this.phase = 'duel';
       let newDuel = new Duel(matchingPlayerNumbers);
@@ -248,6 +284,8 @@ GameState.prototype.grabTotem = function(playerNumber) {
       newDuel.recordGrab(playerNumber);
     }
   }
+
+  this.updateWinningPlayers();
 }
 
 GameState.prototype.endDuel = function(duelToEnd) {
@@ -256,15 +294,16 @@ GameState.prototype.endDuel = function(duelToEnd) {
     //Fastest player in a inwardArrow duel puts his or her discardPile in the pot.
     let fastestPlayer = this.players[giversAndTakers[0][0]]
     this.pot.push(...fastestPlayer.discardPile.splice(0));
+    this.pauseForMessage('Player ' + (giversAndTakers[0][0] + 1).toString() + ' wins the duel.')
   } else {
     this.transferCards(giversAndTakers[0], giversAndTakers[1]);
+    this.pauseForMessage('Player ' + (giversAndTakers[0][0] + 1).toString() + ' wins the duel.')
   }
   duelToEnd.getPlayerNumbers().forEach((number) => { 
     this.players[number].duel = null;
    });
   this.duelCnt--;
   if (this.duelCnt === 0) { this.phase = 'flip'; }
-
 }
 
 GameState.prototype.transferCards = function(givers, takers) {
@@ -296,15 +335,35 @@ GameState.prototype.advancePlayerToFlip = function() {
   this.playerToFlip = -1;
 }
 
-GameState.prototype.getWinners = function() {
-  let winners = [];
+/**
+ * Checks if players have cards left in their playDeck.
+ * If all players do not have any card in their playDeck, 
+ * all players take their discard piles as their play deck.
+ */
+GameState.prototype.updateWinningPlayers = function() {
+  let playersWithoutCards = [];
+  let playersWithoutPlayDeck = [];
+
   for (let i = 0; i < this.players.length; i++) {
     let player = this.players[i];
     if (player.discardPile.length === 0 && player.playDeck.length === 0) {
-      winners.push(i);
+      playersWithoutCards.push(i);
+    }
+    if (player.playDeck.length === 0) {
+      playersWithoutPlayDeck.push(i);
     }
   }
-  return winners;
+
+  if (playersWithoutCards.length > 0) {
+    //Players who get rid of their discardPile and playDeck wins.
+    this.winningPlayers = playersWithoutCards;
+  } else if (playersWithoutPlayDeck.length === this.players.length) {
+    //The game ends in a draw when players don't have cards left to flip.
+    this.winningPlayers =  playersWithoutPlayDeck;
+  } else {
+    //Game continues without a winner(s)
+    this.winningPlayers = [];
+  }
 }
 
 /**
@@ -314,7 +373,7 @@ GameState.prototype.getWinners = function() {
  * @param {Int}   duration              Length of the animation in seconds
  * @param {Int}   framesPerSecond       Number of animation frames per second
  */
-function frameCounter(duration, framesPerSecond) {
+function FrameCounter(duration, framesPerSecond) {
   this.duration = duration;
   this.framesPerSecond = framesPerSecond;
   this.frameCount = 0;
@@ -323,7 +382,7 @@ function frameCounter(duration, framesPerSecond) {
 }
 
 
-frameCounter.prototype.start = function() {
+FrameCounter.prototype.start = function() {
   this.frameCount = 0;
   this.active = true;
 
@@ -431,18 +490,3 @@ Duel.prototype.getGiversAndTakers = function() {
   }
   return [givers, takers];
 }
-
-function gameLoop(gameState) {
-  
-  /*
-  state.players.forEach((player) => {
-    player.cardFlipFrameCounter.updateCounter();
-  });
-  */
-
-  let winners = gameState.getWinners();
-  //endgame
-  //clear room and disconnect players
-  return winners;
-}
-

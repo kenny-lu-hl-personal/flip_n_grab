@@ -38,5 +38,4 @@ function clickInGame(event, gameCanvas) {
     console.log('you tried to flip a card');
     socket.emit('flipCard');
   }
-
 }

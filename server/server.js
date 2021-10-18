@@ -3,21 +3,23 @@ const io = require('socket.io')(3000, {
 });
 const { initGame, gameLoop} = require('./game');
 const { FRAME_RATE } = require('./constants');
-const { makeid } = require('./utils');
+const { generateGameCode } = require('./utils');
 
-//TODO. remove makeid(5) magic number
-//      change from clientRoom obj to client.room attribute of each client
 
 //Map each socket IO room with its game state. Property name is room ID. Property value is game state.
 const state = {};
-//Map each client to the connected room's ID. Property name is a client ID. Property value is room ID.
-const clientRooms = {};
+//Map each socket IO room with the interval loop that updates its game state.
+const intervals = {};
+//Map each socket IO room with the number of players that have finished loading game imgs/files.
+const gameLoadedCount = {};
+
 
 io.on('connection', client => {
 
   client.on('newGame', handleNewGame);
   client.on('joinGame', handleJoinGame);
   client.on('startGame', handleStartGame);
+  client.on('playAgain', handlePlayAgain);
   client.on('gameLoaded', handleGameLoaded);
   client.on('disconnect', handleDisconnect);
   client.on('flipCard', handleFlipCard);
@@ -25,20 +27,20 @@ io.on('connection', client => {
 
   function handleDisconnect() {
     console.log('a player has disconnected');
-    let leftRoomID = clientRooms[client.id]
+    let leftRoomID = client.roomID;
+    delete client.roomID;
     //if the room still has clients, send remaining clients updated room state
     if (io.sockets.adapter.rooms.has(leftRoomID)) {
-      emitRoomState(leftRoomID);
+      emitGameOver(leftRoomID, 'playerDisconnect');
     }
-    delete clientRooms[client.id]
+    clearGame(leftRoomID);
   }
 
   function handleNewGame() {
-    let newRoomID = makeid(5);
-    clientRooms[client.id] = newRoomID;
+    let newRoomID = generateGameCode(5);
     client.emit('gameCode', newRoomID);
-
     client.join(newRoomID);
+    client.roomID = newRoomID;
     emitRoomState(newRoomID);
   }
 
@@ -58,15 +60,14 @@ io.on('connection', client => {
       return;
     }
 
-    clientRooms[client.id] = roomID;
-
     client.join(roomID);
+    client.roomID = roomID;
     emitRoomState(roomID);
   }
   
   function handleStartGame() {
     console.log('receive start game request');
-    const roomID = clientRooms[client.id];
+    const roomID = client.roomID;
     //set of all client ids in the room
     const clientIDs = io.sockets.adapter.rooms.get(roomID);    
     const numClients = clientIDs ? clientIDs.size : 0;
@@ -84,48 +85,56 @@ io.on('connection', client => {
       }  
 
       state[roomID] = initGame(playerNumber);
-      //Request clients to load game collateral. Clients respond with 'gameLoaded' event when done.s
+      //Request clients to load game collateral. Clients respond with 'gameLoaded' event when done.
+      gameLoadedCount[roomID] = 0;
       io.sockets.in(roomID).emit('loadGame', state[roomID]);
     }
   } 
 
   function handleGameLoaded() {
-    const roomID = clientRooms[client.id];
-    gameState = state[roomID];
-    gameState.collatLoaded += 1;
-    if (gameState.collatLoaded === gameState.players.length) {
-      //io.sockets.in(roomID).emit('gameState', gameState);
-      startGameInterval(roomID);
+    const roomID = client.roomID;
+    gameLoadedCount[roomID]++;
+    if (gameLoadedCount[roomID] === state[roomID].players.length) {
+      intervals[roomID] = startGameInterval(roomID);
     }
   }
 
   function handleFlipCard() {
-    const roomID = clientRooms[client.id];
+    const roomID = client.roomID;
     gameState = state[roomID];
     gameState.flipCard(client.playerNumber);
   }  
 
   function handleGrabTotem() {
-    const roomID = clientRooms[client.id];
+    const roomID = client.roomID;
     gameState = state[roomID];
     gameState.grabTotem(client.playerNumber);
   }  
+
+  function handlePlayAgain() {
+    client.emit('loadInitialScreen');
+  }
 
 });
 
 function startGameInterval(roomID) {
   const intervalId = setInterval(() => {
-    const winners = gameLoop(state[roomID]);
+    const gameState = state[roomID];
+    const winners = gameState.winningPlayers;
     
     if (winners.length === 0) {
-      emitGameState(roomID, state[roomID])
+      emitGameState(roomID, gameState)
+    } else if (winners.length === gameState.players.length) {
+      emitGameOver(roomID, 'gameDraw', winners);
+      clearGame(roomID);    
     } else {
-      emitGameOver(roomID, winners);
-      state[roomID] = null;
-      clearInterval(intervalId);
+      emitGameOver(roomID, 'gameComplete', winners);
+      clearGame(roomID);
     }
+    console.log('running')
   }, 1000 / FRAME_RATE);
 
+  return intervalId;
 }
 
 function emitGameState(roomID, gameState) {
@@ -133,10 +142,31 @@ function emitGameState(roomID, gameState) {
   io.sockets.in(roomID).emit('gameState', gameState);
 }
 
-function emitGameOver(roomID, winners) {
-  io.sockets.in(roomID).emit('gameOver', {winners});
+function emitGameOver(roomID, endMode, winners = []) {
+  if (endMode != 'playerDisconnect' && endMode != 'gameComplete') {
+    throw new Error('Invalid value for function argument "endMode"');
+  }
+  if (endMode === "gameComplete" && winners.length < 1) {
+    throw new Error('Invalid value for function argument "winners"');
+  }
+  io.sockets.in(roomID).emit('gameOver', {endMode, winners});
 }
 
 function emitRoomState(roomID) {
   io.sockets.in(roomID).emit('enterRoom', io.sockets.adapter.rooms.get(roomID).size, roomID);
+}
+
+function clearGame(roomID) {
+  if (io.sockets.adapter.rooms.has(roomID)) {
+    let clientIDs = io.sockets.adapter.rooms.get(roomID);
+    clientIDs.forEach((clientID) => {
+      let client = io.sockets.sockets.get(clientID);
+      delete client.roomID;
+    }) 
+    io.in(roomID).socketsLeave(roomID);
+  }
+  clearInterval(intervals[roomID]);
+  delete intervals[roomID];
+  delete state[roomID];
+  delete gameLoadedCount[roomID]; 
 }

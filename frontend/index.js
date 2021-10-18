@@ -1,9 +1,9 @@
 
-//Import a socket io instance that connects to the game server
-import { socket } from './server_connection.js';
 import { gameCanvas } from './canvas_utils.js';
 
-import { handleEnterRoom, 
+import { socket,
+         reset,
+         handleEnterRoom, 
          handleLoadGame, 
          handleSetPlayerNumber,
          handleGameState,
@@ -27,13 +27,15 @@ socket.on('tooManyPlayers', handleTooManyPlayers);
 socket.on('notEnoughPlayers', handleNotEnoughPlayers);
 
 
-//Process and send player input to the game server.
+//Process player inputs.
 const newGameBtn = document.getElementById('newGameButton');
 const joinGameBtn = document.getElementById('joinGameButton');
 const startGameBtn = document.getElementById('startGameButton');
+const playAgainBtn = document.getElementById('playAgainButton');
 
 newGameBtn.addEventListener('click', newGame);
 joinGameBtn.addEventListener('click', joinGame);
 startGameBtn.addEventListener('click', startGame);
 gameCanvas.canvas.addEventListener('click', (event) => { clickInGame(event, gameCanvas) })
 gameCanvas.canvas.addEventListener('mousemove', (event) => { gameCanvas.setMousePos.call(gameCanvas, event) });
+playAgainBtn.addEventListener('click', reset);

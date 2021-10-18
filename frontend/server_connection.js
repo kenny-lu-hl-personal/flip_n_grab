@@ -1,6 +1,7 @@
 import { gameCanvas } from './canvas_utils.js'
 
 export { socket,
+         reset,
          handleEnterRoom, 
          handleLoadGame, 
          handleSetPlayerNumber,
@@ -15,16 +16,28 @@ export { socket,
 const socket = io('http://localhost:3000');
 
 //DOM objects
-const gameScreen = document.getElementById('gameScreen');
-const waitingScreen = document.getElementById('waitingScreen');
 const initialScreen = document.getElementById('initialScreen');
+const waitingScreen = document.getElementById('waitingScreen');
+const gameScreen = document.getElementById('gameScreen');
+const gameEndScreen = document.getElementById('gameEndScreen');
 const gameCodeInput = document.getElementById('gameCodeInput');
 const gameCodeDisplay = document.getElementById('gameCodeDisplay');
 const waitingPlayersDisplay = document.getElementById('waitingPlayersDisplay');
+const gameEndDisplay = document.getElementById('gameEndDisplay');
 
 //The client's player number assigned by the game server.
 let clientPlayerNumber;
 let gameState = null;
+
+function reset() {
+  clientPlayerNumber = null;
+  gameState = null;
+  gameCodeInput.value = '';
+  initialScreen.style.display = "block";
+  waitingScreen.style.display = "none";
+  gameScreen.style.display = "none";
+  gameEndScreen.style.display = "none";
+}
 
 function handleEnterRoom(numConnected, roomName) {
   initialScreen.style.display = "none";
@@ -65,15 +78,24 @@ function handleGameState(state) {
 }
 
 function handleGameOver(endStatus) {
-  let gameWon = false;
-  endStatus.winners.forEach((winnerNumber) => {
-    if (winnerNumber === clientPlayerNumber) { gameWon = true;}
-  })
-  if (gameWon) {
-    alert('You Win!')
-  } else {
-    alert('You Lose :(');
+  if (endStatus.endMode === 'playerDisconnect') {
+    gameEndDisplay.innerText = 'A player has disconnected. Game ended.'
+  } else if (endStatus.endMode === 'gameComplete') {
+    let gameWon = false;
+    endStatus.winners.forEach((winnerNumber) => {
+      if (winnerNumber === clientPlayerNumber) { gameWon = true;}
+    })
+
+    if (gameWon) {
+      gameEndDisplay.innerText = 'You Win!';
+    } else {
+      gameEndDisplay.innerText = 'You Lose :(';
+    }
+  } else if (endStatus.endMode === 'gameDraw') {
+    gameEndDisplay.innerText = 'The game ended in a draw. No players have any cards left in their play deck.'
   }
+  gameEndScreen.style.display = "block";
+  gameScreen.style.display = "none";
 }
 
 function handleGameCode(gameCode) {
@@ -82,7 +104,7 @@ function handleGameCode(gameCode) {
 
 function handleUnknownCode() {
   reset();
-  alert('Unknown Game Code')
+  alert('Uh-oh, the game you are trying to join cannot be found. \rPlease try another game code.')
 }
 
 function handleTooManyPlayers() {
@@ -91,14 +113,9 @@ function handleTooManyPlayers() {
 }
 
 function handleNotEnoughPlayers() {
-  alert('Oops! There aren\'t enough players. Please wait for more players to join the game.');
+  alert('Oops! There aren\'t enough players. \r\rPlease share your game code with other players and wait for them to join the game.');
 }
 
-function reset() {
-  clientPlayerNumber = null;
-  gameState = null;
-  gameCodeInput.value = '';
-  initialScreen.style.display = "block";
-  waitingScreen.style.display = "none";
-  gameScreen.style.display = "none";
+function handleLoadInitialScreen() {
+  reset();
 }

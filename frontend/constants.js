@@ -1,4 +1,4 @@
-export const IMG_NAME_BG = 'pattern_pink_dots';
+export const IMG_NAME_BG = 'teal_checkers';
 export const IMG_NAME_CARD_BACKSIDE = 'card_backside';
 export const IMG_NAME_TOTEM = 'totem';
 export const IMG_NAME_HAND = 'hand';

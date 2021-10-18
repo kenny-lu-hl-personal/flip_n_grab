@@ -125,8 +125,19 @@ GameCanvas.prototype.paintGame = function(clientPlayerNumber, gameState) {
 
     //If the client's mouse hovers over an actionable area, highlight the actionable area.
     this.paintMouseSelection(clientPlayerNumber, gameState.phase, gameState.playerToFlip);
+
+    this.paintInGameMessage(gameState.messenger);
   }
- 
+}
+
+GameCanvas.prototype.paintInGameMessage = function(messenger) {
+  if (messenger.frameCounter.active) {
+    this.ctx.save();
+    this.ctx.fillStyle = 'black'
+    this.ctx.fillRect(0, this.canvas.height * 0.25, this.canvas.width, this.canvas.height * 0.5);
+    this.ctx.restore();
+    this.paintText(messenger.message, GRID_POS_TOTEM_AND_POT, 'center', 'middle', 0.5, 0.5);      
+  }
 }
 
 GameCanvas.prototype.paintGrabTotem = function(players) {
@@ -204,14 +215,14 @@ GameCanvas.prototype.paintPlayer = function(player, playerNumber) {
   //Display player numbers next to their cards
   this.paintText('Player ' + (1 + playerNumber).toString(), playerPosition.namePos, 
                   playerPosition.nameAlignmentX, playerPosition.nameAlignmentY,
-                  playerPosition.nameOffsetX, playerPosition.nameOffsetY, 'Teal');
+                  playerPosition.nameOffsetX, playerPosition.nameOffsetY, 'white');
 }
 
 
 GameCanvas.prototype.paintFlipCard = function(card, startPosition, endPosition, animationProgress) {
   //Card image is scaled in X direction based on animationProgress.
   let scaleX = (animationProgress * 2) - 1;
-
+ 
   //Card image is moved across the canvas based on animationProgress.
   let startX = this.gameDisplayGrid.positionCoordinates[startPosition].x + this.gameDisplayGrid.cellMargin;
   let startY = this.gameDisplayGrid.positionCoordinates[startPosition].y + this.gameDisplayGrid.cellMargin;
@@ -223,7 +234,7 @@ GameCanvas.prototype.paintFlipCard = function(card, startPosition, endPosition, 
 
   this.ctx.save();
   this.ctx.translate(startX + scaledImgSize/2, startY);
-  this.ctx.scale(scaleX, 1);
+  this.ctx.scale(Math.abs(scaleX), 1);
 
   if (scaleX >= 0) {
     //When scaling factor is > 0, frontside of the card is drawn
@@ -261,7 +272,7 @@ GameCanvas.prototype.paintDeck = function(cardDeck, index, side, gridPos) {
   }
 }
 
-GameCanvas.prototype.paintText = function(text, gridPos, alignmentX, alignmentY, offsetX, offsetY, color = "#e60000") {
+GameCanvas.prototype.paintText = function(text, gridPos, alignmentX, alignmentY, offsetX, offsetY, color = "white") {
   let x = this.gameDisplayGrid.positionCoordinates[gridPos].x + Math.floor(offsetX * this.gameDisplayGrid.cellSize);
   let y = this.gameDisplayGrid.positionCoordinates[gridPos].y + Math.floor(offsetY * this.gameDisplayGrid.cellSize);
   this.ctx.save();
