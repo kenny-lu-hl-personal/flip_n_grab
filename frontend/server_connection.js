@@ -13,7 +13,8 @@ export { socket,
          handleNotEnoughPlayers };
 
 //Create socket io instance and connect to game server
-const socket = io('http://localhost:3000');
+//const socket = io('http://localhost:3000');  
+const socket = io('https://rocky-dawn-87570.herokuapp.com');
 
 //DOM objects
 const initialScreen = document.getElementById('initialScreen');

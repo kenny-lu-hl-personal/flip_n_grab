@@ -1,10 +1,21 @@
-const io = require('socket.io')(3000, {
-  cors: {origin: ['http://localhost:8080']},
+
+//Create socket io instance and connect to game server
+let front_end_origin;
+let backend_port;
+if (typeof process.env.IS_HEROKU === 'undefined') {
+  front_end_origin = 'http://localhost:8080';    //local testing
+  backend_port = 3000 
+} else {
+  front_end_origin = 'https://priceless-nightingale-6a1611.netlify.app/';
+  backend_port = process.env.PORT
+}
+const io = require('socket.io')(backend_port, {
+  cors: {origin: [front_end_origin]},
 });
+
 const { initGame, gameLoop} = require('./game');
 const { FRAME_RATE } = require('./constants');
 const { generateGameCode } = require('./utils');
-
 
 //Map each socket IO room with its game state. Property name is room ID. Property value is game state.
 const state = {};

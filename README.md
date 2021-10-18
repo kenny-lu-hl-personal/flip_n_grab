@@ -11,4 +11,5 @@ To Run:
 -run backend server 'cd backend/; npx nodemon server.js'
 -run frontend server 'cd frontent/; npx live-server'
 
-
+Netlify FE:
+https://priceless-nightingale-6a1611.netlify.app/
