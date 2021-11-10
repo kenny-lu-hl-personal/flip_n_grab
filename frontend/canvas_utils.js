@@ -55,7 +55,7 @@ GameCanvas.prototype.loadImages = function() {
   console.log('load images');
   return new Promise(resolve => {
 
-  let path = "https://www.flipngrab.com/static/game_collateral/images/";
+  let path = "https://www.flipngrab.com/static/game_collateral/images/listing_images.html";
     let imagePaths = [];  
     let imageObjects = this.imageObjects
 
