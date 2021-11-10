@@ -141,7 +141,6 @@ GameState.prototype.pauseForMessage = function(message) {
 
   function resetPhase(phase) {
     this.phase = phase;
-    console.log('hello')
   }
   //const resetGamePhase = resetPhase.bind(this);
   setTimeout(resetPhase.bind(this, prevPhase), ANIMATION_DURATION_MESSAGE * 1000); 
@@ -295,6 +294,7 @@ GameState.prototype.endDuel = function(duelToEnd) {
     let fastestPlayer = this.players[giversAndTakers[0][0]]
     this.pot.push(...fastestPlayer.discardPile.splice(0));
     this.pauseForMessage('Player ' + (giversAndTakers[0][0] + 1).toString() + ' wins the duel.')
+    this.phase = 'flip'
   } else {
     this.transferCards(giversAndTakers[0], giversAndTakers[1]);
     this.pauseForMessage('Player ' + (giversAndTakers[0][0] + 1).toString() + ' wins the duel.')
