@@ -54,15 +54,15 @@ GameCanvas.prototype.paintBG = function() {
 GameCanvas.prototype.loadImages = function() {
   console.log('load images');
   return new Promise(resolve => {
-	let folder = "https://www.flipngrab.com/static/game_collateral/images/";
-	//let folder = "static/game_collateral/images/";
+
+  let path = "https://www.flipngrab.com/static/game_collateral/images/";
     let imagePaths = [];  
     let imageObjects = this.imageObjects
 
     //jQuery AJAX function to find all image file paths on server
     function getImagePaths() {
       return $.ajax({
-          url: folder,
+          url: path,
           success: function (data) {
             $(data).find("a").attr("href", function (i, val) {
               if( val.match(/\.(jpe?g|png|gif)$/) ) { 
@@ -72,7 +72,7 @@ GameCanvas.prototype.loadImages = function() {
           }
       });
     }
-    
+
     //wait for jQuery function to finish getting paths, then load images
     $.when(getImagePaths()).done(function(response) {
       let loaded = 0;  
