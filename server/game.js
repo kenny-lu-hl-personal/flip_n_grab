@@ -22,8 +22,7 @@ function initGame(numPlayers) {
        pot.push(new Card(color, i, null));
     }
   }
-  //TODO: add 'inward' and resolve stuck state
-  for (const special_rule of ['outward', 'color']) {
+  for (const special_rule of ['inward', 'outward', 'color']) {
     for (let i = 0; i < 4; i++) {
        pot.push(new Card(null, null, special_rule));
     }
@@ -135,19 +134,22 @@ function GameState(pot, players, messenger, phase = 'flip', matchColors = false,
   this.winningPlayers = [];      //Keeps track of players with no cards left. When winningPlayers.length > 0, the game ends.
 }
 
+//TODO: fix pause game not working correctly.
 GameState.prototype.pauseForMessage = function(message) {
-  const prevPhase = this.phase;
+  //const prevPhase = this.phase;
   this.phase = 'pause';
   this.messenger.send(message);
 
-  function resetPhase(phase) {
-    this.phase = phase;
-  }
+  //function resetPhase(phase) {
+  //  this.phase = phase;
+  //}
   //const resetGamePhase = resetPhase.bind(this);
-  setTimeout(resetPhase.bind(this, prevPhase), ANIMATION_DURATION_MESSAGE * 1000); 
+  //setTimeout(resetPhase.bind(this, prevPhase), ANIMATION_DURATION_MESSAGE * 1000); 
 }
 
 GameState.prototype.flipCard = function(playerNumber) {
+  console.log(`${playerNumber} requests to flip a card in ${this.phase} phase`);
+
   if (playerNumber != this.playerToFlip || this.phase != 'flip') { 
     console.log(`${playerNumber}'s request to flip a card is ignored`);
     return;
@@ -240,6 +242,7 @@ GameState.prototype.envokeSpecialOutward = function() {
 }
 
 GameState.prototype.grabTotem = function(playerNumber) {
+  
   if (this.phase === 'pause') { 
     return;
   }

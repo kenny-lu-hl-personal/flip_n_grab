@@ -142,7 +142,6 @@ function startGameInterval(roomID) {
       emitGameOver(roomID, 'gameComplete', winners);
       clearGame(roomID);
     }
-    console.log('running')
   }, 1000 / FRAME_RATE);
 
   return intervalId;
