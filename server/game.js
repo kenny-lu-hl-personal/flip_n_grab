@@ -137,7 +137,7 @@ function GameState(pot, players, messenger, phase = 'flip', matchColors = false,
 //TODO: fix pause game not working correctly.
 GameState.prototype.pauseForMessage = function(message) {
   //const prevPhase = this.phase;
-  this.phase = 'pause';
+  //this.phase = 'pause';
   this.messenger.send(message);
 
   //function resetPhase(phase) {
