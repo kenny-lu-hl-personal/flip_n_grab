@@ -22,7 +22,8 @@ function initGame(numPlayers) {
        pot.push(new Card(color, i, null));
     }
   }
-  for (const special_rule of ['inward', 'outward', 'color']) {
+  //TODO: add 'inward' and resolve stuck state
+  for (const special_rule of ['outward', 'color']) {
     for (let i = 0; i < 4; i++) {
        pot.push(new Card(null, null, special_rule));
     }
@@ -294,7 +295,6 @@ GameState.prototype.endDuel = function(duelToEnd) {
     let fastestPlayer = this.players[giversAndTakers[0][0]]
     this.pot.push(...fastestPlayer.discardPile.splice(0));
     this.pauseForMessage('Player ' + (giversAndTakers[0][0] + 1).toString() + ' wins the duel.')
-    this.phase = 'flip'
   } else {
     this.transferCards(giversAndTakers[0], giversAndTakers[1]);
     this.pauseForMessage('Player ' + (giversAndTakers[0][0] + 1).toString() + ' wins the duel.')
