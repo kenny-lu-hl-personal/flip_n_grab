@@ -18,16 +18,16 @@ function initGame(numPlayers) {
   //Create and shuffle the 'pot'. A pot holds Cards that do not belong to any Player.
   let pot = [];
   for (const color of ['yellow', 'red', 'green', 'blue']) {
-    //for (let i = 0; i < CARDS_PATTERN_COUNT; i++) {
-    for (let i = 0; i < 3; i++) {
+    for (let i = 0; i < CARDS_PATTERN_COUNT; i++) {
        pot.push(new Card(color, i, null));
     }
   }
-  //for (const special_rule of ['inward', 'outward', 'color']) {
-  //  for (let i = 0; i < 4; i++) {
-  //     pot.push(new Card(null, null, special_rule));
-  //  }
-  //}
+  for (const special_rule of ['inward', 'outward', 'color']) {
+    for (let i = 0; i < 4; i++) {
+       pot.push(new Card(null, null, special_rule));
+    }
+  }
+
   Card.shuffle(pot)
   deckSize = Math.floor(pot.length / numPlayers)
 
