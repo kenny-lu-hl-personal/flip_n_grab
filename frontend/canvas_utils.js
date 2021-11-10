@@ -54,7 +54,7 @@ GameCanvas.prototype.paintBG = function() {
 GameCanvas.prototype.loadImages = function() {
   console.log('load images');
   return new Promise(resolve => {
-	let folder = "https://www.flipngrap.com/static/game_collateral/images/";
+	let folder = "https://www.flipngrab.com/static/game_collateral/images/";
 	//let folder = "static/game_collateral/images/";
     let imagePaths = [];  
     let imageObjects = this.imageObjects
