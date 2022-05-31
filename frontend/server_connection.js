@@ -13,7 +13,7 @@ export { socket,
          handleNotEnoughPlayers };
 
 //Create socket io instance and connect to game server
-//const socket = io('http://localhost:3000');  
+//TODO: add env variable to for local runs 'const socket = io('http://localhost:3000')';  
 const socket = io('https://rocky-dawn-87570.herokuapp.com');
 
 //DOM objects
